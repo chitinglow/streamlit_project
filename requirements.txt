@@ -4,3 +4,6 @@ pandas
 seaborn
 matplotlib
 scipy
+python-dotenv
+black
+Faker
