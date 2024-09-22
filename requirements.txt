@@ -1,4 +1,5 @@
 streamlit
+onnx==1.15.0
 openpyxl
 loguru
 pandas
@@ -8,3 +9,12 @@ scipy
 python-dotenv
 black
 Faker
+requests
+pyttsx3
+Pillow
+python-doctr[tf]
+opencv-python~=4.10.0.84
+ultralytics~=8.2.78
+pytesseract
+onnxruntime==1.15.0
+tf2onnx

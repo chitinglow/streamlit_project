@@ -1,21 +1,35 @@
 import streamlit as st
 import sqlite3
 
+
 # insert data into database
-def insert_user(given_name, first_name, username, email, phone_number, password, register_type):
-    conn = sqlite3.connect('./databases/healthcare.db')  # Ensure correct path
+def insert_user(
+    given_name, first_name, username, email, phone_number, password, register_type
+):
+    conn = sqlite3.connect("./databases/healthcare.db")  # Ensure correct path
     cursor = conn.cursor()
 
-    cursor.execute('''
+    cursor.execute(
+        """
         INSERT INTO User (given_name, first_name, username, email, phone_number, password, register_type)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (given_name, first_name, username, email, phone_number, password, register_type))
+    """,
+        (
+            given_name,
+            first_name,
+            username,
+            email,
+            phone_number,
+            password,
+            register_type,
+        ),
+    )
 
     conn.commit()
     conn.close()
 
 
-# Registration form
+# Registration form function
 def user_registration():
     st.title("User Registration")
 
@@ -30,9 +44,16 @@ def user_registration():
 
     if st.button("Register"):
         if given_name and first_name and username and email and password:
-            # Insert the user data into the database
             try:
-                insert_user(given_name, first_name, username, email, phone_number, password, register_type)
+                insert_user(
+                    given_name,
+                    first_name,
+                    username,
+                    email,
+                    phone_number,
+                    password,
+                    register_type,
+                )
                 st.success(f"Account created successfully as {register_type}!")
             except sqlite3.IntegrityError:
                 st.error("Username or email already exists. Please try again.")
@@ -40,14 +61,3 @@ def user_registration():
             st.warning("Please fill out all required fields.")
 
     st.text("Already have an account? Go to Login page from the sidebar.")
-
-
-# Page for different role access
-def member_page():
-    st.title("Member of Public Dashboard")
-    st.write("Welcome! You can access general healthcare resources.")
-
-
-def professional_page():
-    st.title("🧑‍⚕️ Professional Dashboard")
-    st.write("Welcome! You can access professional healthcare resources.")
