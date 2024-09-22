@@ -1,126 +1,103 @@
 import streamlit as st
+from src.registration import user_registration, member_page, professional_page
 import sqlite3
 
+# Initialize session state for page and login status
+if "page" not in st.session_state:
+    st.session_state.page = "home"  # Default page
+
 if "logged_in" not in st.session_state:
-    st.session_state["logged_in"] = False
-    st.session_state["role"] = None
-    st.session_state["username"] = None  # Store the username for greetings
+    st.session_state.logged_in = False  # User login status
+
+if "user_role" not in st.session_state:
+    st.session_state.user_role = None  # Track user's role
 
 
-conn = sqlite3.connect("./databases/users.db", check_same_thread=False)
-cursor = conn.cursor()
+# Function to check the role of the user after registration or login
+def check_user_role(username):
+    conn = sqlite3.connect('./databases/healthcare.db')
+    cursor = conn.cursor()
 
-cursor.execute(
-    """
-    CREATE TABLE IF NOT EXISTS users (
-        userID TEXT PRIMARY KEY,
-        given_name TEXT,
-        first_name TEXT,
-        email TEXT,
-        username TEXT,
-        password TEXT,
-        role TEXT
-    )
-"""
-)
+    cursor.execute('SELECT register_type FROM User WHERE username = ?', (username,))
+    user_role = cursor.fetchone()
 
-cursor.execute(
-    """
-    CREATE TABLE IF NOT EXISTS images (
-        imageID TEXT PRIMARY KEY,
-        userID TEXT FOREIGN KEY,
-        date_upload DATE,
-        image_path TEXT,
-    )
-    """
-)
-
-cursor.execute(
-    """
-    CREATE TABLE IF NOT EXISTS medication (
-    medicationID TEXT PRIMARY KEY,
-    userID TEXT FOREIGN KEY,
-    image_path TEXT,
-    side_effect TEXT,
-    )
-    """
-)
-
-conn.commit()
+    conn.close()
+    return user_role[0] if user_role else None
 
 
-def create_user(username, password, role):
-   cursor.execute(
-        "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-        (username, password, role),
-    )
-   conn.commit()
+# Function to set page and simulate redirection
+def set_page(page):
+    st.session_state.page = page  # Update session state page
 
 
-def get_user(username):
-    cursor.execute(
-        "SELECT username, password, role FROM users WHERE username = ?", (username,)
-    )
-    return cursor.fetchone()
+# Function to log out the user
+def logout():
+    st.session_state.logged_in = False
+    st.session_state.page = "home"  # Redirect to home page
+    st.session_state.user_role = None  # Clear the user role
 
 
-# Registration Page
-def register():
-    st.title("Register")
+# Function to show logout button in the top-right corner using columns
+def show_logout_button():
+    # Create columns with custom width to position the logout button in the top-right corner
+    col1, col2, col3 = st.columns([6, 1, 1])
 
-    new_username = st.text_input("Choose a Username")
-    new_password = st.text_input("Choose a Password", type="password")
-    role = st.selectbox("Select your role", ("admin", "user"))
-
-    if st.button("Register"):
-        user = get_user(new_username)
-        if user:
-            st.error("Username already exists. Try another.")
-        else:
-            create_user(new_username, new_password, role)
-            st.success(f"User {new_username} registered successfully!")
+    with col3:
+        if st.button("Logout"):
+            logout()
 
 
-def login():
-    st.title("Login")
-
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-
-    if st.button("Login"):
-        user = get_user(username)
-        if user and user[1] == password:
-            st.session_state["logged_in"] = True
-            st.session_state["role"] = user[2]
-            st.session_state["username"] = username  # Store the username for future use
-        else:
-            st.error("Invalid username or password.")
-
-
-def admin_page():
-    st.title("Admin Page")
-    st.write(f"Welcome {st.session_state['username']} to the admin dashboard!")
-
-
-def user_page():
-    st.title("User Page")
-    st.write(f"Welcome {st.session_state['username']} to the user dashboard!")
-
-
+# Main page
 def main():
-    if st.session_state["logged_in"]:
-        if st.session_state["role"] == "admin":
-            admin_page()
-        elif st.session_state["role"] == "user":
-            user_page()
-    else:
-        st.sidebar.title("Menu")
-        option = st.sidebar.radio("Choose an option", ["Login", "Register"])
-        if option == "Login":
-            login()
-        elif option == "Register":
-            register()
+    # Check session state for current page
+    page = st.session_state.page
+
+    if not st.session_state.logged_in:
+        if page == "home":
+            st.title("Healthcare App")
+
+            # Create columns layout to position buttons on the top-right
+            col1, col2, col3 = st.columns([6, 1, 3])
+
+            # Place Login and Register buttons in the top-right column (col3)
+            with col3:
+                option = st.radio("", ["Login", "Register"], horizontal=True)  # Login first, Register second
+
+            # Display the home page content by default
+            st.subheader("Welcome to Healthcare App")
+            st.text("Please select 'Login' or 'Register' from the top-right options to continue.")
+
+            # Handle the selected option
+            if option == "Login":
+                st.subheader("Login Page")
+                username = st.text_input("Username")
+                password = st.text_input("Password", type="password")
+
+                if st.button("Login"):
+                    user_role = check_user_role(username)
+                    if user_role:
+                        st.success(f"Logged in as {user_role}")
+                        st.session_state.logged_in = True
+                        st.session_state.user_role = user_role
+                        if user_role == "Professional":
+                            set_page("professional")
+                        elif user_role == "Member of Public":
+                            set_page("member")
+                    else:
+                        st.error("Invalid username or password.")
+
+            elif option == "Register":
+                user_registration()  # Call the registration page
+
+    if st.session_state.logged_in:
+        # Show the appropriate page based on the user role
+        if st.session_state.user_role == "Professional":
+            show_logout_button()
+            professional_page()  # Redirect to professional page
+        elif st.session_state.user_role == "Member of Public":
+            show_logout_button()
+            member_page()  # Redirect to member page
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
