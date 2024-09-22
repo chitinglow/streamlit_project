@@ -49,5 +49,5 @@ def member_page():
 
 
 def professional_page():
-    st.title("Professional Dashboard")
+    st.title("🧑‍⚕️ Professional Dashboard")
     st.write("Welcome! You can access professional healthcare resources.")

@@ -1,5 +1,6 @@
 import streamlit as st
 from src.registration import user_registration, member_page, professional_page
+from src.dashboard import professional_dashboard
 import sqlite3
 
 # Initialize session state for page and login status
@@ -93,7 +94,7 @@ def main():
         # Show the appropriate page based on the user role
         if st.session_state.user_role == "Professional":
             show_logout_button()
-            professional_page()  # Redirect to professional page
+            professional_dashboard()
         elif st.session_state.user_role == "Member of Public":
             show_logout_button()
             member_page()  # Redirect to member page
