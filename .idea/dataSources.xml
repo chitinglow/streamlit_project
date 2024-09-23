@@ -2,7 +2,7 @@
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
     <data-source source="LOCAL" name="healthcare" uuid="874d84a4-739a-4a58-b8e2-10ba07cecca6">
-      <driver-ref>sqlite.xerial</driver-ref>
+      <driver-ref>f862eaab-82e5-4a6a-9a9a-93642371ad8e</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:C:\Users\ctlow\Desktop\Learning\streamlit\databases\healthcare.db</jdbc-url>
