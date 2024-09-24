@@ -1,61 +1,72 @@
 import sqlite3
+from faker import Faker
 
-conn = sqlite3.connect("../databases/healthcare.db")
+# Create a Faker instance with locale set to 'en_SG' for Singapore or 'en_AS' for Asian names.
+fake = Faker('en_US')
+
+# Database connection
+conn = sqlite3.connect("./databases/healthcare.db")
 cursor = conn.cursor()
 
 
-# Insert sample data into User table
-def populate_users():
-    users = [
+# New function to generate user data
+def generate_users():
+    # Manually defined Admin users
+    admin_users = [
         (
-            "John",
-            "Doe",
-            "jdoe",
-            "john.doe@example.com",
-            "1234567890",
-            "password1",
-            "Professional",
+            "Srinath",  # First name
+            "Sridharan",       # Last name
+            "srinath.admin",  # Username
+            "srinath@example.com",  # Email
+            "1234567890",  # Phone number
+            "password1",  # Password
+            "Admin",  # Register type
         ),
         (
-            "Jane",
-            "Smith",
-            "jsmith1",
-            "jane.smith@example.com",
-            "2345678901",
-            "password2",
-            "Professional",
-        ),
-        (
-            "Alice",
-            "Brown",
-            "abrown",
-            "alice.brown@example.com",
-            "3456789012",
-            "password3",
-            "Member of Public",
-        ),
-        (
-            "Bob",
-            "White",
-            "bwhite",
-            "bob.white@example.com",
-            "4567890123",
-            "password4",
-            "Member of Public",
-        ),
-        (
-            "Charlie",
-            "Green",
-            "cgreen",
-            "charlie.green@example.com",
-            "5678901234",
-            "password5",
-            "Professional",
+            "Chester",  # First name
+            "Low",  # Last name
+            "chester.low",  # Username
+            "chester.admin@example.com",  # Email
+            "0987654321",  # Phone number
+            "password2",  # Password
+            "Admin",  # Register type
         ),
     ]
+    
+    # Generate 5 Doctor/Nurse users
+    professional_users = [
+        (
+            fake.first_name(),  # First name
+            fake.last_name(),   # Last name
+            fake.user_name(),   # Username
+            fake.email(),       # Email
+            fake.phone_number(),# Phone number
+            "password3",        # Password
+            "Doctor/Nurse",     # Register type
+        )
+        for _ in range(5)
+    ]
+    
+    # Generate 23 Patient users
+    patient_users = [
+        (
+            fake.first_name(),  # First name
+            fake.last_name(),   # Last name
+            fake.user_name(),   # Username
+            fake.email(),       # Email
+            fake.phone_number(),# Phone number
+            "password4",        # Password
+            "Patient",          # Register type
+        )
+        for _ in range(23)
+    ]
+    
+    # Combine all users into one list
+    users = admin_users + professional_users + patient_users
+    
     cursor.executemany(
         """
-        INSERT INTO User (given_name, first_name, username, email, phone_number, password, register_type)
+        INSERT INTO User (first_name, last_name, username, email, phone_number, password, register_type)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """,
         users,
@@ -63,94 +74,143 @@ def populate_users():
     conn.commit()
 
 
-# Insert sample data into Patient_Info table
+# Insert sample data into Patient_Info table for 25 patients
 def populate_patient_info():
+    diagnoses = [
+        "Stage 1 Invasive Ductal Carcinoma", 
+        "Stage 2 Lobular Carcinoma", 
+        "DCIS (Ductal Carcinoma In Situ)", 
+        "Triple-Negative Breast Cancer",
+        "Her2-Positive Breast Cancer",
+        "Chronic Hypertension", 
+        "Diabetes Mellitus Type 2",
+        "Osteoporosis",
+        "Obesity",
+        "Asthma"
+    ]
+    
+    treatment_types = [
+        "Chemotherapy", 
+        "Radiation Therapy", 
+        "Mastectomy", 
+        "Lumpectomy", 
+        "Hormone Therapy", 
+        "Targeted Therapy",
+        "Blood Pressure Medication",
+        "Insulin Therapy",
+        "Calcium Supplement",
+        "Bronchodilator Inhaler"
+    ]
+    
+    treatment_descriptions = [
+        "Administered Adriamycin and Cyclophosphamide followed by Paclitaxel.",
+        "Underwent mastectomy with sentinel lymph node biopsy.",
+        "Completed 5 weeks of radiation therapy to the left breast.",
+        "Taking Tamoxifen for estrogen receptor-positive breast cancer.",
+        "Started Herceptin for Her2-positive breast cancer.",
+        "On Lisinopril for management of chronic hypertension.",
+        "Insulin dose adjusted based on recent HbA1c levels.",
+        "Patient is on Alendronate for osteoporosis management.",
+        "Prescribed weight loss management plan including diet and exercise.",
+        "Using Symbicort inhaler daily for asthma control."
+    ]
+    
+    progress_notes = [
+        "Patient reports mild nausea post-chemotherapy, managed with antiemetics.",
+        "Surgical site healing well, no signs of infection or lymphedema.",
+        "Patient experiencing hot flashes and mood swings due to hormone therapy.",
+        "Follow-up mammogram scheduled in 6 months to monitor for recurrence.",
+        "Patient reports fatigue and mild neuropathy, likely side effects of chemotherapy.",
+        "Blood pressure under control, advised to continue current medication.",
+        "Patient reports improved glycemic control, no hypoglycemic episodes noted.",
+        "Bone density stable on current therapy, no new fractures reported.",
+        "Weight loss achieved as per plan, advised to maintain current regimen.",
+        "Asthma symptoms well-controlled with current medication, no exacerbations."
+    ]
+
     patient_info = [
         (
-            1,
-            "Diabetes",
-            "Medication",
-            "Daily insulin injections",
-            2.5,
-            "Patient shows improvement",
-        ),
-        (
-            2,
-            "Hypertension",
-            "Medication",
-            "Daily blood pressure monitoring",
-            1.8,
-            "Blood pressure under control",
-        ),
-        (3, "Asthma", "Inhaler", "Inhaler usage twice a day", 2.0, "Condition stable"),
-        (
-            4,
-            "Osteoporosis",
-            "Treatment",
-            "Weekly calcium supplements",
-            1.2,
-            "Bone density stable",
-        ),
-        (
-            5,
-            "Chronic Pain",
-            "Physical Therapy",
-            "Weekly sessions",
-            2.3,
-            "Pain management effective",
-        ),
+            userID,
+            fake.random_int(min=55, max=100),  # Generate random age between 55 and 90
+            fake.random_element(elements=diagnoses),  # Choose a random diagnosis
+            fake.random_element(elements=treatment_types),  # Choose a random treatment type
+            fake.random_element(elements=treatment_descriptions),  # Choose a random treatment description
+            round(fake.random_number(digits=1, fix_len=False) / 10.0, 1),  # Bone mass density example
+            fake.random_element(elements=progress_notes)  # Choose a random progress note
+        )
+        for userID in range(3, 28)  # Skipping userID 1 and 2 as they are Admins
     ]
+    
     cursor.executemany(
         """
-        INSERT INTO Patient_Info (userID, diagnosis, treatment_type, treatment_description, bone_mass_density, progress_note)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO Patient_Info (userID, age, diagnosis, treatment_type, treatment_description, bone_mass_density, progress_note)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     """,
         patient_info,
     )
     conn.commit()
 
 
-# Insert sample data into Medication table
+# Insert sample data into Medication table for 25 patients
+# Insert sample data into Medication table for 25 patients
+# Insert sample data into Medication table for 25 patients with an extensive pool of medications
 def populate_medication():
-    medications = [
-        (
-            "Insulin",
-            "Injection",
-            1,
-            None,
-            "2024-01-01",
-            "Diabetes treatment",
-            "Low blood sugar",
-        ),
-        (
-            "Lisinopril",
-            "Tablet",
-            2,
-            None,
-            "2024-02-01",
-            "Blood pressure treatment",
-            "Dizziness",
-        ),
-        (
-            "Albuterol",
-            "Inhaler",
-            3,
-            None,
-            "2024-03-01",
-            "Asthma treatment",
-            "Throat irritation",
-        ),
-        (
-            "Calcium",
-            "Supplement",
-            4,
-            None,
-            "2024-04-01",
-            "Bone density treatment",
-            "Nausea",
-        ),
-        ("Ibuprofen", "Tablet", 5, None, "2024-05-01", "Pain relief", "Stomach upset"),
-    ]
+    # Define a comprehensive mapping of medications to their corresponding conditions
+    medication_condition_map = {
+        # Breast Cancer Medications
+        "Tamoxifen": "Breast Cancer (Hormone Therapy)",
+        "Letrozole": "Breast Cancer (Hormone Therapy)",
+        "Anastrozole": "Breast Cancer (Hormone Therapy)",
+        "Exemestane": "Breast Cancer (Hormone Therapy)",
+        "Trastuzumab": "Breast Cancer (HER2-Positive)",
+        "Pertuzumab": "Breast Cancer (HER2-Positive)",
+        "Doxorubicin": "Breast Cancer (Chemotherapy)",
+        "Cyclophosphamide": "Breast Cancer (Chemotherapy)",
+        "Paclitaxel": "Breast Cancer (Chemotherapy)",
+        "Docetaxel": "Breast Cancer (Chemotherapy)",
+
+        # General Medications
+        "Insulin": "Diabetes",
+        "Metformin": "Diabetes",
+        "Lisinopril": "Hypertension",
+        "Amlodipine": "Hypertension",
+        "Albuterol": "Asthma",
+        "Fluticasone": "Asthma",
+        "Calcium": "Osteoporosis",
+        "Vitamin D": "Osteoporosis",
+        "Ibuprofen": "Chronic Pain",
+        "Aspirin": "Chronic Pain",
+        "Paracetamol": "Pain Relief",
+        "Omeprazole": "Gastroesophageal Reflux Disease (GERD)",
+        "Atorvastatin": "High Cholesterol",
+        "Levothyroxine": "Hypothyroidism",
+        "Warfarin": "Blood Thinner",
+        "Amoxicillin": "Bacterial Infection",
+        "Ciprofloxacin": "Bacterial Infection",
+        "Prednisone": "Inflammation",
+        "Metoprolol": "Hypertension",
+        "Losartan": "Hypertension",
+    }
+    
+    medications = []
+    for userID in range(3, 28):  # Skipping userID 1 and 2 as they are Admins
+        # Random number of medications for each patient (between 1 and 3)
+        num_medications = fake.random_int(min=1, max=3)
+        for _ in range(num_medications):
+            medication_name = fake.word(ext_word_list=list(medication_condition_map.keys()))
+            medication_condition = medication_condition_map[medication_name]  # Get the corresponding condition
+            medications.append(
+                (
+                    medication_name,
+                    fake.word(ext_word_list=["Tablet", "Injection", "Inhaler", "Supplement"]),
+                    userID,
+                    None,  # Assuming no file path is needed
+                    fake.date_this_year(),
+                    medication_condition,  # Use the mapped condition instead of a random sentence
+                    fake.word(ext_word_list=["Nausea", "Dizziness", "Throat irritation", "Low blood sugar", "Stomach upset", "None"]),
+                )
+            )
+    
     cursor.executemany(
         """
         INSERT INTO Medication (medication_name, medication_type, userID, file_path, date_medication_prescribed, medication_treatment_used, side_effect)
@@ -161,14 +221,17 @@ def populate_medication():
     conn.commit()
 
 
-# Insert sample data into Image table
+
+
+# Insert sample data into Image table for 25 patients
 def populate_images():
     images = [
-        (1, "/path/to/image1.jpg", "2024-01-15"),
-        (2, "/path/to/image2.jpg", "2024-02-15"),
-        (3, "/path/to/image3.jpg", "2024-03-15"),
-        (4, "/path/to/image4.jpg", "2024-04-15"),
-        (5, "/path/to/image5.jpg", "2024-05-15"),
+        (
+            userID,
+            f"/path/to/image{userID-2}.jpg",  # Creating unique file paths for each patient
+            fake.date_this_year(),
+        )
+        for userID in range(3, 28)  # Skipping userID 1 and 2 as they are Admins
     ]
     cursor.executemany(
         """
@@ -180,64 +243,21 @@ def populate_images():
     conn.commit()
 
 
-# Insert sample data into Appointment table
+# Insert sample data into Appointment table for 25 patients
 def populate_appointments():
     appointments = [
         (
-            1,
-            "Medication",
-            "Checkup",
-            "2024-06-01",
-            "10:00",
-            "2024-05-15",
-            "09:00",
-            "2024-06-02",
-            "11:00",
-        ),
-        (
-            2,
-            "Medication",
-            "Follow-up",
-            "2024-07-01",
-            "11:00",
-            "2024-06-15",
-            "10:00",
-            "2024-07-02",
-            "12:00",
-        ),
-        (
-            3,
-            "Inhaler",
-            "Checkup",
-            "2024-08-01",
-            "12:00",
-            "2024-07-15",
-            "11:00",
-            "2024-08-02",
-            "13:00",
-        ),
-        (
-            4,
-            "Treatment",
-            "Consultation",
-            "2024-09-01",
-            "13:00",
-            "2024-08-15",
-            "12:00",
-            "2024-09-02",
-            "14:00",
-        ),
-        (
-            5,
-            "Physical Therapy",
-            "Follow-up",
-            "2024-10-01",
-            "14:00",
-            "2024-09-15",
-            "13:00",
-            "2024-10-02",
-            "15:00",
-        ),
+            userID,
+            fake.word(ext_word_list=["Medication", "Physical Therapy", "Inhaler", "Treatment", "Surgery"]),
+            fake.word(ext_word_list=["Checkup", "Follow-up", "Consultation", "Procedure"]),
+            fake.date_this_year(),
+            fake.time(),
+            fake.date_this_year(),
+            fake.time(),
+            fake.date_this_year(),
+            fake.time(),
+        )
+        for userID in range(3, 28)  # Skipping userID 1 and 2 as they are Admins
     ]
     cursor.executemany(
         """
@@ -249,8 +269,9 @@ def populate_appointments():
     conn.commit()
 
 
+# Modify the populate_all function to include the new user generation
 def populate_all():
-    populate_users()
+    generate_users()  # Populate users with the new function
     populate_patient_info()
     populate_medication()
     populate_images()

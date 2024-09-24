@@ -1,22 +1,21 @@
 import streamlit as st
 import sqlite3
 
-
 # insert data into database
 def insert_user(
-    given_name, first_name, username, email, phone_number, password, register_type
+    first_name, last_name, username, email, phone_number, password, register_type
 ):
     conn = sqlite3.connect("./databases/healthcare.db")  # Ensure correct path
     cursor = conn.cursor()
 
     cursor.execute(
         """
-        INSERT INTO User (given_name, first_name, username, email, phone_number, password, register_type)
+        INSERT INTO User (first_name, last_name, username, email, phone_number, password, register_type)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """,
         (
-            given_name,
             first_name,
+            last_name,
             username,
             email,
             phone_number,
@@ -28,36 +27,45 @@ def insert_user(
     conn.commit()
     conn.close()
 
-
 # Registration form function
 def user_registration():
     st.title("User Registration")
 
-    # Input fields for the registration form
-    given_name = st.text_input("Given Name")
-    first_name = st.text_input("First Name")
-    username = st.text_input("Username")
-    email = st.text_input("Email")
-    phone_number = st.text_input("Phone Number")
-    password = st.text_input("Password", type="password")
-    register_type = st.selectbox("Register as:", ["Professional", "Member of Public"])
-
-    if st.button("Register"):
-        if given_name and first_name and username and email and password:
-            try:
-                insert_user(
-                    given_name,
-                    first_name,
-                    username,
-                    email,
-                    phone_number,
-                    password,
-                    register_type,
-                )
-                st.success(f"Account created successfully as {register_type}!")
-            except sqlite3.IntegrityError:
-                st.error("Username or email already exists. Please try again.")
-        else:
-            st.warning("Please fill out all required fields.")
+    # Example custom HTML for accessible registration form
+    st.markdown(
+        """
+        <div aria-label="Registration Form">
+            <label for="first_name">First Name:</label>
+            <input type="text" id="first_name" name="first_name" placeholder="Enter your first name">
+            <br><br>
+            <label for="last_name">Last Name:</label>
+            <input type="text" id="last_name" name="last_name" placeholder="Enter your last name">
+            <br><br>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" placeholder="Enter your username">
+            <br><br>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" placeholder="Enter your email">
+            <br><br>
+            <label for="phone_number">Phone Number:</label>
+            <input type="tel" id="phone_number" name="phone_number" placeholder="Enter your phone number">
+            <br><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" placeholder="Enter your password">
+            <br><br>
+            <label for="register_type">Register as:</label>
+            <select id="register_type" name="register_type">
+                <option value="Doctor/Nurse">Doctor/Nurse</option>
+                <option value="Patient">Patient</option>
+                <option value="Admin">Admin</option>
+            </select>
+            <br><br>
+            <button onclick="registerUser()">Register</button>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     st.text("Already have an account? Go to Login page from the sidebar.")
+
+# You can now call the user_registration function as needed
