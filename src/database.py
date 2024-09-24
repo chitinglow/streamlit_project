@@ -1,18 +1,20 @@
 import sqlite3
 
-
 # Create Tables
 def create_tables():
-    conn = sqlite3.connect("../databases/healthcare.db")
+    conn = sqlite3.connect("./databases/healthcare.db")
     cursor = conn.cursor()
+
+    # Drop the existing User table (if it exists)
+    cursor.execute("DROP TABLE IF EXISTS User")
 
     # Create User Table
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS User (
             userID INTEGER PRIMARY KEY AUTOINCREMENT,
-            given_name TEXT,
             first_name TEXT,
+            last_name TEXT,
             username TEXT UNIQUE,
             email TEXT,
             phone_number TEXT,
@@ -58,6 +60,7 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS Patient_Info (
             patientID INTEGER PRIMARY KEY AUTOINCREMENT,
             userID INTEGER,
+            age INTEGER,
             diagnosis TEXT,
             treatment_type TEXT,
             treatment_description TEXT,
@@ -93,8 +96,8 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS Medical_Profession (
             professionID INTEGER PRIMARY KEY AUTOINCREMENT,
             userID INTEGER,
-            given_name TEXT,
             first_name TEXT,
+            last_name TEXT,
             role TEXT,
             FOREIGN KEY (userID) REFERENCES User(userID) ON DELETE CASCADE
         )
@@ -111,9 +114,48 @@ def update_medication(
     medication_type,
     file_path,
     date_medication_prescribed,
-    medication_treatment_used,
     side_effect,
 ):
+    # Define a comprehensive mapping of medications to their corresponding conditions
+    medication_condition_map = {
+        # Breast Cancer Medications
+        "Tamoxifen": "Breast Cancer (Hormone Therapy)",
+        "Letrozole": "Breast Cancer (Hormone Therapy)",
+        "Anastrozole": "Breast Cancer (Hormone Therapy)",
+        "Exemestane": "Breast Cancer (Hormone Therapy)",
+        "Trastuzumab": "Breast Cancer (HER2-Positive)",
+        "Pertuzumab": "Breast Cancer (HER2-Positive)",
+        "Doxorubicin": "Breast Cancer (Chemotherapy)",
+        "Cyclophosphamide": "Breast Cancer (Chemotherapy)",
+        "Paclitaxel": "Breast Cancer (Chemotherapy)",
+        "Docetaxel": "Breast Cancer (Chemotherapy)",
+
+        # General Medications
+        "Insulin": "Diabetes",
+        "Metformin": "Diabetes",
+        "Lisinopril": "Hypertension",
+        "Amlodipine": "Hypertension",
+        "Albuterol": "Asthma",
+        "Fluticasone": "Asthma",
+        "Calcium": "Osteoporosis",
+        "Vitamin D": "Osteoporosis",
+        "Ibuprofen": "Chronic Pain",
+        "Aspirin": "Chronic Pain",
+        "Paracetamol": "Pain Relief",
+        "Omeprazole": "Gastroesophageal Reflux Disease (GERD)",
+        "Atorvastatin": "High Cholesterol",
+        "Levothyroxine": "Hypothyroidism",
+        "Warfarin": "Blood Thinner",
+        "Amoxicillin": "Bacterial Infection",
+        "Ciprofloxacin": "Bacterial Infection",
+        "Prednisone": "Inflammation",
+        "Metoprolol": "Hypertension",
+        "Losartan": "Hypertension",
+    }
+    
+    # Get the condition for the provided medication_name
+    medication_treatment_used = medication_condition_map.get(medication_name, "Unknown Condition")
+    
     conn = sqlite3.connect("../databases/healthcare.db")
     cursor = conn.cursor()
 
@@ -128,7 +170,7 @@ def update_medication(
             medication_type,
             file_path,
             date_medication_prescribed,
-            medication_treatment_used,
+            medication_treatment_used,  # Use the mapped condition
             side_effect,
             medicationID,
         ),
