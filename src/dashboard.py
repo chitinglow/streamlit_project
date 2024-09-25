@@ -330,6 +330,21 @@ def fetch_patient_data():
     conn.close()
     return df
 
+
+# Subheader color
+st.markdown(
+    """
+    <style>
+    .custom-subheader {
+        font-size:24px;
+        color: #4A90E2; /* Soft Blue */
+        font-weight: bold;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 def professional_dashboard():
     try:
         user_role = st.session_state.get("user_role")
