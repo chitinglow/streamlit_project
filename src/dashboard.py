@@ -330,7 +330,6 @@ def fetch_patient_data():
     conn.close()
     return df
 
-
 # Subheader color
 st.markdown(
     """
