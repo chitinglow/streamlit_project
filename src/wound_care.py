@@ -14,6 +14,7 @@ image_recommendations = {
     "image7.png": "Reassurance given to patient, drain bottle vacuum intact. Appointment with Breast Care Nurse remain.",
 }
 
+
 # Function to calculate similarity between two images
 def image_similarity(image1, image2):
     image1 = image1.resize((128, 128)).convert("L")
@@ -21,6 +22,7 @@ def image_similarity(image1, image2):
     array1 = np.array(image1).flatten()
     array2 = np.array(image2).flatten()
     return np.corrcoef(array1, array2)[0, 1]
+
 
 # Function to display wound care analysis in Streamlit
 def wound_care_analysis():
@@ -35,12 +37,16 @@ def wound_care_analysis():
             known_images[image_name] = img.copy()  # Copy to avoid file handle issues
 
     # Streamlit Interface for Upload
-    uploaded_image = st.file_uploader("Upload a wound image", type=["jpg", "jpeg", "png"])
+    uploaded_image = st.file_uploader(
+        "Upload a wound image", type=["jpg", "jpeg", "png"]
+    )
 
     if uploaded_image is not None:
         # Display the uploaded image as a small picture
         uploaded_image = Image.open(uploaded_image)
-        st.image(uploaded_image, caption="Uploaded Image", width=200)  # Adjust width as needed
+        st.image(
+            uploaded_image, caption="Uploaded Image", width=200
+        )  # Adjust width as needed
 
         # Initialize variables to track the best match
         max_similarity = 0
@@ -58,4 +64,6 @@ def wound_care_analysis():
         if max_similarity >= similarity_threshold:
             st.success(f"Recommendation: {image_recommendations[best_match]}")
         else:
-            st.warning("No high similarity found for this image. Please consult a medical professional.")
+            st.warning(
+                "No high similarity found for this image. Please consult a medical professional."
+            )

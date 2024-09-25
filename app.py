@@ -10,6 +10,7 @@ import os
 import openai
 from difflib import get_close_matches
 
+
 # Function to encode the image to base64
 def get_base64_image(image_path):
     with open(image_path, "rb") as img_file:
@@ -33,7 +34,7 @@ st.markdown(
     }}
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 
@@ -41,7 +42,9 @@ st.markdown(
 def get_api_key():
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        st.error("OpenAI API key not found in environment variables. Please set the API key.")
+        st.error(
+            "OpenAI API key not found in environment variables. Please set the API key."
+        )
     return api_key
 
 
@@ -67,7 +70,7 @@ complaints_dict = {
     "can help me book for tomorrow at 11.30 for dressing. Thanks": "This is a short notice to reschedule your appointment for tomorrow. Please call Breast Centre at 6936 5307 during office hours.",
     "My dressing side fell off. Should I just wait for Monday": "Do you still have the gauze and plaster which we gave you upon discharge? If yes, please refer to the brochure and reinforce the dressing. If no, please proceed to ward 35 from 10am to 8pm for dressing.",
     "A little better..I try to sleep off the pain": "Aww.. I hope your pain will be better tomorrow. Let me know tomorrow if your pain has worsened.",
-    "I am here now for the dressing. Still bleeding": "Please approach room 4 nurses on your bleeding now."
+    "I am here now for the dressing. Still bleeding": "Please approach room 4 nurses on your bleeding now.",
 }
 
 
@@ -87,12 +90,22 @@ def ask_missy(prompt):
                 return complaints_dict[complaint]
 
         # Fuzzy matching: Check if there's a close match using difflib
-        close_matches = get_close_matches(lower_prompt, [complaint.lower() for complaint in complaints_dict.keys()],
-                                          n=1, cutoff=0.6)
+        close_matches = get_close_matches(
+            lower_prompt,
+            [complaint.lower() for complaint in complaints_dict.keys()],
+            n=1,
+            cutoff=0.6,
+        )
         if close_matches:
             # Return the response for the closest match found
             closest_complaint = next(
-                (complaint for complaint in complaints_dict if complaint.lower() == close_matches[0]), None)
+                (
+                    complaint
+                    for complaint in complaints_dict
+                    if complaint.lower() == close_matches[0]
+                ),
+                None,
+            )
             if closest_complaint:
                 return complaints_dict[closest_complaint]
 
@@ -105,10 +118,12 @@ def ask_missy(prompt):
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system",
-                 "content": "You are a helpful medical assistant capable of answering a wide range of medical and health-related questions. Keep your answers brief and supportive, focusing on providing clear and accurate information."},
-                {"role": "user", "content": prompt}
-            ]
+                {
+                    "role": "system",
+                    "content": "You are a helpful medical assistant capable of answering a wide range of medical and health-related questions. Keep your answers brief and supportive, focusing on providing clear and accurate information.",
+                },
+                {"role": "user", "content": prompt},
+            ],
         )
 
         return completion.choices[0].message.content
@@ -135,10 +150,14 @@ if "missy_response" not in st.session_state:
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
 
+
 def check_user_credentials(username, password):
     conn = sqlite3.connect("./databases/healthcare.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT userID, register_type FROM User WHERE username = ? AND password = ?", (username, password))
+    cursor.execute(
+        "SELECT userID, register_type FROM User WHERE username = ? AND password = ?",
+        (username, password),
+    )
     user_data = cursor.fetchone()
     conn.close()
     return user_data if user_data else None
@@ -220,13 +239,17 @@ def main():
 
             col1, col2, col3 = st.columns([6, 1, 1])
             with col1:
-                option = st.radio("Choose an option", ["Login", "Register"], horizontal=True)
+                option = st.radio(
+                    "Choose an option", ["Login", "Register"], horizontal=True
+                )
             st.text("Please select 'Login' or 'Register' from the options to continue.")
 
             if option == "Login":
                 st.subheader("Login Page")
                 username = st.text_input("Username", label_visibility="hidden")
-                password = st.text_input("Password", type="password", label_visibility="hidden")
+                password = st.text_input(
+                    "Password", type="password", label_visibility="hidden"
+                )
 
                 col_login, col_singpass = st.columns([1, 1])
                 with col_login:
@@ -237,7 +260,9 @@ def main():
                             st.success(f"Logged in as {user_role}")
                             st.session_state.logged_in = True
                             st.session_state.user_role = user_role
-                            st.session_state.user_id = user_id  # Store user_id in session
+                            st.session_state.user_id = (
+                                user_id  # Store user_id in session
+                            )
                             if user_role == "Doctor/Nurse":
                                 set_page("professional")
                             elif user_role == "Patient":
@@ -259,14 +284,19 @@ def main():
         show_ask_missy_button()
 
         if st.session_state.user_role == "Doctor/Nurse":
-            option = st.sidebar.radio("Navigation", ["Dashboard", "Medication Image Analysis"])
+            option = st.sidebar.radio(
+                "Navigation", ["Dashboard", "Medication Image Analysis"]
+            )
             if option == "Dashboard":
                 professional_dashboard()
             elif option == "Medication Image Analysis":
                 ocr_page()
 
         elif st.session_state.user_role == "Patient":
-            option = st.sidebar.radio("Navigation", ["Dashboard", "Medication Image Analysis", "Wound Care Analysis"])
+            option = st.sidebar.radio(
+                "Navigation",
+                ["Dashboard", "Medication Image Analysis", "Wound Care Analysis"],
+            )
             if option == "Dashboard":
                 professional_dashboard()
             elif option == "Medication Image Analysis":
@@ -279,7 +309,8 @@ def main():
                 with st.form(key="missy_form"):
                     # Store user input in session state
                     st.session_state.user_query = st.text_input(
-                        "Enter your medical query or health concern:", label_visibility="hidden"
+                        "Enter your medical query or health concern:",
+                        label_visibility="hidden",
                     )
                     col_submit, col_clear, col_close = st.columns([1, 1, 1])
                     with col_submit:
@@ -291,8 +322,12 @@ def main():
 
                     if submit_query and st.session_state.user_query:
                         # Get response from OpenAI API
-                        st.session_state.missy_response = ask_missy(f"Patient query: {st.session_state.user_query}")
-                        st.session_state.user_query = ""  # Clear the input after submission
+                        st.session_state.missy_response = ask_missy(
+                            f"Patient query: {st.session_state.user_query}"
+                        )
+                        st.session_state.user_query = (
+                            ""  # Clear the input after submission
+                        )
 
                     # Clear response when "Clear Response" button is clicked
                     if clear_response:

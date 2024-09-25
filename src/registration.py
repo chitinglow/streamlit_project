@@ -1,6 +1,7 @@
 import streamlit as st
 import sqlite3
 
+
 # insert data into database
 def insert_user(
     first_name, last_name, username, email, phone_number, password, register_type
@@ -26,6 +27,7 @@ def insert_user(
 
     conn.commit()
     conn.close()
+
 
 # Registration form function
 def user_registration():
@@ -63,9 +65,10 @@ def user_registration():
             <button onclick="registerUser()">Register</button>
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     st.text("Already have an account? Go to Login page from the sidebar.")
+
 
 # You can now call the user_registration function as needed

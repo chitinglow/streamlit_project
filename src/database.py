@@ -1,5 +1,6 @@
 import sqlite3
 
+
 # Create Tables
 def create_tables():
     conn = sqlite3.connect("./databases/healthcare.db")
@@ -129,7 +130,6 @@ def update_medication(
         "Cyclophosphamide": "Breast Cancer (Chemotherapy)",
         "Paclitaxel": "Breast Cancer (Chemotherapy)",
         "Docetaxel": "Breast Cancer (Chemotherapy)",
-
         # General Medications
         "Insulin": "Diabetes",
         "Metformin": "Diabetes",
@@ -152,10 +152,12 @@ def update_medication(
         "Metoprolol": "Hypertension",
         "Losartan": "Hypertension",
     }
-    
+
     # Get the condition for the provided medication_name
-    medication_treatment_used = medication_condition_map.get(medication_name, "Unknown Condition")
-    
+    medication_treatment_used = medication_condition_map.get(
+        medication_name, "Unknown Condition"
+    )
+
     conn = sqlite3.connect("../databases/healthcare.db")
     cursor = conn.cursor()
 
