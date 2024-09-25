@@ -8,7 +8,7 @@ from PIL import Image
 import base64
 import os
 import openai
-
+from difflib import get_close_matches
 
 # Function to encode the image to base64
 def get_base64_image(image_path):
@@ -45,16 +45,65 @@ def get_api_key():
     return api_key
 
 
-# Function to interact with OpenAI API using the correct syntax
+# Dictionary to store predefined complaints and responses
+complaints_dict = {
+    "Is this a chemo drug? My hair has fallen quite a bit recently.": "No, Tamoxifen and Letrozole are not chemo drugs. Hair loss or hair thinning is a common side effect of these medications.",
+    "My finger joints hurt when I wake up every morning. Is this normal?": "Yes, joint stiffness and joint pain are common side effects of Letrozole. If the pain is severe, consult your oncologist.",
+    "Can we take TCM if we're on tamoxifen?": "Please check with your oncologist before taking any TCMs, as they may interfere with Tamoxifen.",
+    "I forgotten to ask the clinic if I'm able to take my thyroid and tamoxifen... Wld u be able to advise?": "Yes, you can continue to take your thyroid medication and rest of the medications together with Tamoxifen.",
+    "Can we take TCM if we're on tamoxifen?": "Please always check with your oncologists if you plan to take any TCMs. The reason is to avoid inference with Tamoxifen",
+    "For those of us taking Tamoxifen, is it true that we cannot consume grapefruit, tangerine n tumeric? What else should we avoid?": "Grapefruit and tangerine should generally be avoided or consumed with caution while taking tamoxifen. Grapefruit and certain other citrus fruits (like Seville oranges) can interfere with how the liver metabolizes tamoxifen, potentially affecting its effectiveness.",
+    "I am experiencing tingling & numbness in my fingers & toes after the chemo. And the numbess is still there even after taking neurobion. Can I ask if any of you have experienced this?": "Yes, patients can still experience of numbness even though they are on neurobion. Neurobion may help to reduce symptoms of neuropath, but they are unlikely to reverse nerve damage entirely. Please inform your breast care nurse to coordinate an appointment for you to see the breast Dr earlier.",
+    "I'm just wondering if anyone has experienced blood spotting on tamoxifen and wanna know on their follow up.": "Please inform your breast care nurse to coordinate an appointment for you to see the breast Dr earlier.",
+    "i wake up at night feeling warm but not sweaty and hate it as it interrupts my sleep ☹️ what time so u usually take tamoxifen?": "You can try to take tamoxifen in the morning.",
+    "Anyone knows the best time to take tamoxifen? I take it in the morning and thinking if it will get better to take it at night?": "There is no strict rule about the best time of day to take Tamoxifen. However, some patients find it helpful to take the medication at a specific time depending on how they manage side effects.Morning: Some people prefer to take it in the morning to avoid potential insomnia or night sweats that might disturb sleep. Night: Others take it in the evening or before bed, especially if they experience nausea or hot flashes, so they can sleep through some of the side effects.",
+    "Hi Ladies, just want to ask for those who are taking Tamoxifen. Does it affect your sleep and do u get body or bone pain? what other side effects do you have? ": "The other side effects from Tamoxifen include menopause-like symptoms including hot flashes, night sweats and vaginal dryness. The more serious side effects include blood clots, stroke, and endometrial cancer. However the side effects depends on individual and vary from patient to patient.",
+    "if you have time can tell me the results of the blood test.": "Please call the Breast Care Nurse at 6936 5307 during office hours to obtain the results.",
+    "got to ask for a memo or hospital visit today": "Please call Breast Centre at 6936 5307 during office hours for the memo.",
+    "not so good cos i feel pain sometimes at the chest area. But no more breast there so not sure. i want to change my appointment to earlier than Oct. maybe like 0Ct 22 and i want to take a blood test.": "I can help you. Do you have any drug allergy? If no drug allergy, please take 2 tabs of Panadol, three times a day for pain relief. Call your Breast Care Nurse in the next working day, she can help you with the appointment and concern.",
+    "I’m very sad these few days. I just cry n cry for I’m not sure why?": "I cannot imagine what you are going through, but I am here for you. Would you like to talk about what is on your mind?",
+    "i am depressed": "I cannot imagine what you are going through, but I am here for you. Have you seen a Dr for your fall?",
+    "i will not go clinic today. Got high fever, cough, cold n sore throat. Also very giddy": "I suggest you see your Family Dr/GP for a consultation now.  I will reschedule your appointment with the Breast Dr, your new appointment will be sent to you via SMS.",
+    "can help me book for tomorrow at 11.30 for dressing. Thanks": "This is a short notice to reschedule your appointment for tomorrow. Please call Breast Centre at 6936 5307 during office hours.",
+    "My dressing side fell off. Should I just wait for Monday": "Do you still have the gauze and plaster which we gave you upon discharge? If yes, please refer to the brochure and reinforce the dressing. If no, please proceed to ward 35 from 10am to 8pm for dressing.",
+    "A little better..I try to sleep off the pain": "Aww.. I hope your pain will be better tomorrow. Let me know tomorrow if your pain has worsened.",
+    "I am here now for the dressing. Still bleeding": "Please approach room 4 nurses on your bleeding now."
+}
+
+
+# Function to interact with OpenAI API or predefined responses
 def ask_missy(prompt):
     try:
+        # Convert the user query to lowercase
+        lower_prompt = prompt.lower()
+
+        # Check for exact or partial matches with predefined complaints
+        for complaint in complaints_dict:
+            # Convert complaint to lowercase for case insensitive comparison
+            lower_complaint = complaint.lower()
+
+            # Check if the user's query contains part of a predefined complaint or vice versa
+            if lower_complaint in lower_prompt or lower_prompt in lower_complaint:
+                return complaints_dict[complaint]
+
+        # Fuzzy matching: Check if there's a close match using difflib
+        close_matches = get_close_matches(lower_prompt, [complaint.lower() for complaint in complaints_dict.keys()],
+                                          n=1, cutoff=0.6)
+        if close_matches:
+            # Return the response for the closest match found
+            closest_complaint = next(
+                (complaint for complaint in complaints_dict if complaint.lower() == close_matches[0]), None)
+            if closest_complaint:
+                return complaints_dict[closest_complaint]
+
+        # If no predefined complaint matches, use OpenAI API
         api_key = get_api_key()
         if not api_key:
             return "No API key available."
 
-        openai.api_key = api_key
-        completion = openai.ChatCompletion.create(
-            model="gpt-4",
+        client = OpenAI(api_key=api_key)
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system",
                  "content": "You are a helpful medical assistant capable of answering a wide range of medical and health-related questions. Keep your answers brief and supportive, focusing on providing clear and accurate information."},
@@ -62,7 +111,7 @@ def ask_missy(prompt):
             ]
         )
 
-        return completion.choices[0].message["content"]
+        return completion.choices[0].message.content
     except Exception as e:
         st.write(f"Error during OpenAI API call: {str(e)}")  # Debug message
         return f"An error occurred: {str(e)}"
