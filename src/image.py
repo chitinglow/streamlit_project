@@ -57,7 +57,7 @@ def text_to_speech(text):
 
 
 def ocr_page():
-    st.title("Image OCR Sample App")
+    st.title("Medication Recognition App")
 
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
 

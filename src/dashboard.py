@@ -313,7 +313,7 @@ def update_appointment(
         st.success(f"Appointment {appointment_id} updated successfully!")
     except sqlite3.Error as e:
         st.error(f"Failed to update appointment: {e}")
-    except Exception as e:
+    except Exception as e: 
         st.error(f"Error occurred while updating appointment: {e}")
 
 def fetch_patient_data():
@@ -321,7 +321,7 @@ def fetch_patient_data():
     conn = sqlite3.connect(DATABASE_URL)
     query = """
     SELECT Patient_Info.patientID,Patient_Info.age, Patient_Info.diagnosis, Patient_Info.treatment_type, 
-           Medication.medication_name, Medication.medication_type 
+           Medication.medication_name, Medication.medication_type, Patient_Info.bone_mass_density
     FROM Patient_Info 
     LEFT JOIN Medication ON Patient_Info.userID = Medication.userID
     """
@@ -350,12 +350,11 @@ def professional_dashboard():
             )
 
             st.markdown("<h1 style='font-size:24px;'>Doctor/Nurse's Dashboard</h1>", unsafe_allow_html=True)
-            st.write("Welcome! Access overview of all patients' healthcare records here.")
-
+            
             # Sidebar for search input and selecting information type
             choice = st.sidebar.radio(
                 "Select Information Type:",
-                ("Overview", "Patient Info", "Medication", "Images", "Appointments"),
+                ("Overview", "Patient Info", "Medication", "Appointments"),
                 index=0  # Set "Overview" as the default selection
             )
 
@@ -379,18 +378,48 @@ def professional_dashboard():
                     unsafe_allow_html=True
                 )
 
-                # Other overview metrics, e.g., age distribution, treatment types, etc.
+                # Age Distribution
                 st.subheader("Age Distribution of Patients")
                 age_histogram = px.histogram(patient_df, x='age', nbins=20, title="Age Distribution of Patients",
                                             labels={'age': 'Age'}, height=400)
                 st.plotly_chart(age_histogram, use_container_width=True)
 
+                # Treatment type
                 st.subheader("Patients by Treatment Type")
                 treatment_count = patient_df["treatment_type"].value_counts().reset_index()
                 treatment_count.columns = ["Treatment Type", "Count"]
                 treatment_chart = px.bar(treatment_count, x="Treatment Type", y="Count", color="Treatment Type",
                                          title="Number of Patients by Treatment Type", height=400)
                 st.plotly_chart(treatment_chart, use_container_width=True)
+
+
+                # Patients by Diagnosis
+                st.subheader("Patients by Diagnosis")
+                diagnosis_count = patient_df["diagnosis"].value_counts().reset_index()
+                diagnosis_count.columns = ["Diagnosis", "Count"]
+                diagnosis_chart = px.bar(diagnosis_count, x="Diagnosis", y="Count", color="Diagnosis",
+                                        title="Number of Patients by Diagnosis", height=400)
+                st.plotly_chart(diagnosis_chart, use_container_width=True)
+
+                # Bone Density Analysis
+                st.subheader("Bone Density Distribution")
+                if "bone_mass_density" in patient_df.columns:
+                    bone_density_histogram = px.histogram(patient_df, x='bone_mass_density', nbins=20, title="Bone Density Distribution",
+                                                        labels={'bone_mass_density': 'Bone Density (g/cm²)'}, height=400)
+                    st.plotly_chart(bone_density_histogram, use_container_width=True)
+                else:
+                    st.write("Bone density data is not available for this patient dataset.")
+
+                # Age and Bone Density Relationship
+                st.subheader("Age vs Bone Density")
+                if "bone_mass_density" in patient_df.columns:
+                    age_bone_scatter = px.scatter(patient_df, x='age', y='bone_mass_density', color='diagnosis',
+                                                title="Age vs Bone Density by Diagnosis",
+                                                labels={'age': 'Age', 'bone_mass_density': 'Bone Density (g/cm²)', 'diagnosis': 'Diagnosis'},
+                                                height=400)
+                    st.plotly_chart(age_bone_scatter, use_container_width=True)
+                else:
+                    st.write("Bone density data is not available for this patient dataset.")
 
             # Display other sections based on the selected radio button
             elif choice == "Patient Info":
@@ -506,9 +535,6 @@ def professional_dashboard():
                     else:
                         st.warning("No appointments found for the specified name.")
 
-            elif choice == "Images":
-                st.subheader("Images")
-                st.write("Display and manage patient wound care images here.")
 
             # Send reminder for upcoming appointments (1 or 3 days)
             reminder_days = st.sidebar.radio(

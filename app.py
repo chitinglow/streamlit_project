@@ -2,9 +2,12 @@ import streamlit as st
 from src.registration import user_registration
 from src.dashboard import professional_dashboard
 from src.image import ocr_page
+from src.wound_care import wound_care_analysis
 import sqlite3
 from PIL import Image
 import base64
+import os
+from openai import OpenAI
 
 # Function to encode the image to base64
 def get_base64_image(image_path):
@@ -31,60 +34,106 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Function to get OpenAI API key
+def get_api_key():
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        st.error("OpenAI API key not found in environment variables. Please set the API key.")
+    return api_key
+
+# Function to interact with OpenAI API using the new syntax
+# Function to interact with OpenAI API using the new syntax
+def ask_missy(prompt):
+    try:
+        api_key = get_api_key()
+        if not api_key:
+            return "No API key available."
+        
+        client = OpenAI(api_key=api_key)
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful medical assistant capable of answering a wide range of medical and health-related questions. Keep your answers brief and supportive, focusing on providing clear and accurate information."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        return completion.choices[0].message.content
+    except Exception as e:
+        st.write(f"Error during OpenAI API call: {str(e)}")  # Debug message
+        return f"An error occurred: {str(e)}"
+
+
 # Initialize session state for page and login status
 if "page" not in st.session_state:
     st.session_state.page = "home"  # Default at home page
 
 if "logged_in" not in st.session_state:
-    # Check user's login status
     st.session_state.logged_in = False
 
 if "user_role" not in st.session_state:
-    #  Track user's role
     st.session_state.user_role = None
 
+# Initialize session state for query and response
+if "user_query" not in st.session_state:
+    st.session_state.user_query = ""
+
+if "missy_response" not in st.session_state:
+    st.session_state.missy_response = ""
 
 # Check the role of the user after registration or login
 def check_user_role(username):
     conn = sqlite3.connect("./databases/healthcare.db")
     cursor = conn.cursor()
-    # get information from user table
     cursor.execute("SELECT register_type FROM User WHERE username = ?", (username,))
     user_role = cursor.fetchone()
-
     conn.close()
     return user_role[0] if user_role else None
 
 
 def set_page(page):
-    # Update session state page
     st.session_state.page = page
 
 
 def logout():
     st.session_state.logged_in = False
-    # direct back to home page
     st.session_state.page = "home"
-    # clear user role session
     st.session_state.user_role = None
 
 
 def show_logout_button():
-    col1, col2, col3 = st.columns([6, 1, 1])
-
-    with col3:
+    col1, col2 = st.columns([8, 2])
+    with col2:
         if st.button("Logout"):
             logout()
 
+def show_ask_missy_button():
+    if st.session_state.user_role == "Patient":
+        col1, col2 = st.columns([8, 2])
+        with col2:
+            st.markdown("## Need Help?")
+            if st.button("Ask MISSY", key="ask_missy"):
+                st.session_state.show_missy_form = True
 
-# Main page
 def main():
-    # Add high contrast toggle and font size slider
+    # Initialize session state variables here as well to ensure they exist
+    if "user_query" not in st.session_state:
+        st.session_state.user_query = ""
+
+    if "missy_response" not in st.session_state:
+        st.session_state.missy_response = ""
+
+    if "show_missy_form" not in st.session_state:
+        st.session_state.show_missy_form = False
+
+    # Track the current navigation option
+    if "current_navigation" not in st.session_state:
+        st.session_state.current_navigation = ""
+
     st.sidebar.title("Accessibility Settings")
     high_contrast = st.sidebar.checkbox("High Contrast Mode")
     font_size = st.sidebar.slider("Font Size", 12, 32, 16)
 
-    # Apply styles based on high contrast mode
     if high_contrast:
         st.markdown(
             """
@@ -102,7 +151,6 @@ def main():
             unsafe_allow_html=True,
         )
 
-    # Apply font size dynamically
     st.markdown(
         f"""
         <style>
@@ -114,9 +162,6 @@ def main():
         unsafe_allow_html=True,
     )
 
-
-
-    # Check session state for current page
     page = st.session_state.page
 
     if not st.session_state.logged_in:
@@ -125,24 +170,16 @@ def main():
             st.markdown("### Your Personalised AI Breast Care Nurse")
 
             col1, col2, col3 = st.columns([6, 1, 1])
-
-            # Adding radio buttons for Login and Register in col3
             with col1:
-                option = st.radio("", ["Login", "Register"], horizontal=True)
-
-
-            #st.subheader("Welcome to Missy AI App")
+                option = st.radio("Choose an option", ["Login", "Register"], horizontal=True)
             st.text("Please select 'Login' or 'Register' from the options to continue.")
 
             if option == "Login":
                 st.subheader("Login Page")
-                username = st.text_input("Username")
-                password = st.text_input("Password", type="password")
+                username = st.text_input("Username", label_visibility="hidden")  # Added label and hidden visibility
+                password = st.text_input("Password", type="password", label_visibility="hidden")  # Added label and hidden visibility
 
-                # Creating columns for login button and Singpass button
                 col_login, col_singpass = st.columns([1, 1])
-
-                # Display Login button
                 with col_login:
                     if st.button("Login"):
                         user_role = check_user_role(username)
@@ -158,30 +195,19 @@ def main():
                                 set_page("admin")
                         else:
                             st.error("Invalid username or password.")
-                # Custom CSS to style the "Login with Singpass" button
-                m = st.markdown("""
-                                <style>
-                                div.stButton > button:first-child {
-                                    background-color: red;
-                                }
-                                </style>""", unsafe_allow_html=True)
-            
-                # Display "Login with Singpass" button with custom styling
                 with col_singpass:
                     if st.button("Login with Singpass", key="singpass"):
-                        # Add the functionality for Singpass login here
                         st.success("Login with Singpass is currently not implemented.")
 
-
-
-            # go to registration page
             elif option == "Register":
                 user_registration()
 
     if st.session_state.logged_in:
-        if st.session_state.user_role == "Doctor/Nurse":
-            show_logout_button()
+        # Show logout and "Ask MISSY" buttons at the top
+        show_logout_button()
+        show_ask_missy_button()
 
+        if st.session_state.user_role == "Doctor/Nurse":
             option = st.sidebar.radio("Navigation", ["Dashboard", "Medication Image Analysis"])
             if option == "Dashboard":
                 professional_dashboard()
@@ -189,14 +215,56 @@ def main():
                 ocr_page()
 
         elif st.session_state.user_role == "Patient":
-            show_logout_button()
+            option = st.sidebar.radio("Navigation", ["Dashboard", "Medication Image Analysis", "Wound Care Analysis"])
+            if option == "Dashboard":
+                professional_dashboard()
+            elif option == "Medication Image Analysis":
+                ocr_page()
+            elif option == "Wound Care Analysis":
+                wound_care_analysis()
 
+            # Show "Ask MISSY" form if the button was clicked
+            if st.session_state.show_missy_form:
+                with st.form(key="missy_form"):
+                    # Store user input in session state
+                    st.session_state.user_query = st.text_input(
+                        "Enter your medical query or health concern:", label_visibility="hidden"
+                    )  # Added label and hidden visibility
+                    col_submit, col_clear, col_close = st.columns([1, 1, 1])
+                    with col_submit:
+                        submit_query = st.form_submit_button(label="Submit Query")
+                    with col_clear:
+                        clear_response = st.form_submit_button(label="Clear Response")
+                    with col_close:
+                        close_form = st.form_submit_button(label="Close Form")
 
-            ocr_page()
+                    if submit_query:
+                        if st.session_state.user_query:
+                            
+                            # Get response from OpenAI API
+                            st.session_state.missy_response = ask_missy(
+                                f"Patient query: {st.session_state.user_query}"
+                            )
+                            st.session_state.user_query = ""  # Clear the input after submission
+
+                     # Clear response when "Clear Response" button is clicked
+                    if clear_response:
+                        st.session_state.missy_response = ""
+                        st.session_state.user_query = ""
+
+                    # Close the "Ask MISSY" form when "Close Form" button is clicked
+                    if close_form:
+                        st.session_state.missy_response = ""
+                        st.session_state.user_query = ""
+                        st.session_state.show_missy_form = False
+
+            # Display response if available
+            if st.session_state.missy_response:
+                # Display the response prominently
+                st.markdown("### MISSY's Response")
+                st.write(st.session_state.missy_response)
 
         elif st.session_state.user_role == "Admin":
-            show_logout_button()
-            # Show both professional dashboard and OCR options for Admin users
             option = st.sidebar.radio("Navigation", ["Dashboard", "OCR Image Analysis"])
             if option == "Dashboard":
                 professional_dashboard()

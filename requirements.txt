@@ -18,3 +18,4 @@ ultralytics~=8.2.78
 pytesseract
 onnxruntime==1.15.0
 tf2onnx
+OpenAI
