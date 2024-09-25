@@ -7,12 +7,14 @@ import sqlite3
 from PIL import Image
 import base64
 import os
-from openai import OpenAI
+import openai
+
 
 # Function to encode the image to base64
 def get_base64_image(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
+
 
 # Encode the image to base64
 image_path = "MISSY Bot.png"  # Adjust this path if the image is in a different location
@@ -34,6 +36,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
 # Function to get OpenAI API key
 def get_api_key():
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -41,30 +44,30 @@ def get_api_key():
         st.error("OpenAI API key not found in environment variables. Please set the API key.")
     return api_key
 
-# Function to interact with OpenAI API using the new syntax
-# Function to interact with OpenAI API using the new syntax
+
+# Function to interact with OpenAI API using the correct syntax
 def ask_missy(prompt):
     try:
         api_key = get_api_key()
         if not api_key:
             return "No API key available."
-        
-        client = OpenAI(api_key=api_key)
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
+
+        openai.api_key = api_key
+        completion = openai.ChatCompletion.create(
+            model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are a helpful medical assistant capable of answering a wide range of medical and health-related questions. Keep your answers brief and supportive, focusing on providing clear and accurate information."},
+                {"role": "system",
+                 "content": "You are a helpful medical assistant capable of answering a wide range of medical and health-related questions. Keep your answers brief and supportive, focusing on providing clear and accurate information."},
                 {"role": "user", "content": prompt}
             ]
         )
-        
-        return completion.choices[0].message.content
+
+        return completion.choices[0].message["content"]
     except Exception as e:
         st.write(f"Error during OpenAI API call: {str(e)}")  # Debug message
         return f"An error occurred: {str(e)}"
 
 
-# Initialize session state for page and login status
 if "page" not in st.session_state:
     st.session_state.page = "home"  # Default at home page
 
@@ -74,21 +77,22 @@ if "logged_in" not in st.session_state:
 if "user_role" not in st.session_state:
     st.session_state.user_role = None
 
-# Initialize session state for query and response
 if "user_query" not in st.session_state:
     st.session_state.user_query = ""
 
 if "missy_response" not in st.session_state:
     st.session_state.missy_response = ""
 
-# Check the role of the user after registration or login
-def check_user_role(username):
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
+
+def check_user_credentials(username, password):
     conn = sqlite3.connect("./databases/healthcare.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT register_type FROM User WHERE username = ?", (username,))
-    user_role = cursor.fetchone()
+    cursor.execute("SELECT userID, register_type FROM User WHERE username = ? AND password = ?", (username, password))
+    user_data = cursor.fetchone()
     conn.close()
-    return user_role[0] if user_role else None
+    return user_data if user_data else None
 
 
 def set_page(page):
@@ -99,6 +103,7 @@ def logout():
     st.session_state.logged_in = False
     st.session_state.page = "home"
     st.session_state.user_role = None
+    st.session_state.user_id = None  # Clear the user_id on logout
 
 
 def show_logout_button():
@@ -106,6 +111,7 @@ def show_logout_button():
     with col2:
         if st.button("Logout"):
             logout()
+
 
 def show_ask_missy_button():
     if st.session_state.user_role == "Patient":
@@ -115,18 +121,12 @@ def show_ask_missy_button():
             if st.button("Ask MISSY", key="ask_missy"):
                 st.session_state.show_missy_form = True
 
-def main():
-    # Initialize session state variables here as well to ensure they exist
-    if "user_query" not in st.session_state:
-        st.session_state.user_query = ""
 
-    if "missy_response" not in st.session_state:
-        st.session_state.missy_response = ""
+def main():
 
     if "show_missy_form" not in st.session_state:
         st.session_state.show_missy_form = False
 
-    # Track the current navigation option
     if "current_navigation" not in st.session_state:
         st.session_state.current_navigation = ""
 
@@ -176,17 +176,19 @@ def main():
 
             if option == "Login":
                 st.subheader("Login Page")
-                username = st.text_input("Username", label_visibility="hidden")  # Added label and hidden visibility
-                password = st.text_input("Password", type="password", label_visibility="hidden")  # Added label and hidden visibility
+                username = st.text_input("Username", label_visibility="hidden")
+                password = st.text_input("Password", type="password", label_visibility="hidden")
 
                 col_login, col_singpass = st.columns([1, 1])
                 with col_login:
                     if st.button("Login"):
-                        user_role = check_user_role(username)
-                        if user_role:
+                        user_data = check_user_credentials(username, password)
+                        if user_data:
+                            user_id, user_role = user_data
                             st.success(f"Logged in as {user_role}")
                             st.session_state.logged_in = True
                             st.session_state.user_role = user_role
+                            st.session_state.user_id = user_id  # Store user_id in session
                             if user_role == "Doctor/Nurse":
                                 set_page("professional")
                             elif user_role == "Patient":
@@ -229,7 +231,7 @@ def main():
                     # Store user input in session state
                     st.session_state.user_query = st.text_input(
                         "Enter your medical query or health concern:", label_visibility="hidden"
-                    )  # Added label and hidden visibility
+                    )
                     col_submit, col_clear, col_close = st.columns([1, 1, 1])
                     with col_submit:
                         submit_query = st.form_submit_button(label="Submit Query")
@@ -238,16 +240,12 @@ def main():
                     with col_close:
                         close_form = st.form_submit_button(label="Close Form")
 
-                    if submit_query:
-                        if st.session_state.user_query:
-                            
-                            # Get response from OpenAI API
-                            st.session_state.missy_response = ask_missy(
-                                f"Patient query: {st.session_state.user_query}"
-                            )
-                            st.session_state.user_query = ""  # Clear the input after submission
+                    if submit_query and st.session_state.user_query:
+                        # Get response from OpenAI API
+                        st.session_state.missy_response = ask_missy(f"Patient query: {st.session_state.user_query}")
+                        st.session_state.user_query = ""  # Clear the input after submission
 
-                     # Clear response when "Clear Response" button is clicked
+                    # Clear response when "Clear Response" button is clicked
                     if clear_response:
                         st.session_state.missy_response = ""
                         st.session_state.user_query = ""
@@ -260,7 +258,6 @@ def main():
 
             # Display response if available
             if st.session_state.missy_response:
-                # Display the response prominently
                 st.markdown("### MISSY's Response")
                 st.write(st.session_state.missy_response)
 

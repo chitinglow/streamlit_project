@@ -317,7 +317,7 @@ def update_appointment(
         st.error(f"Error occurred while updating appointment: {e}")
 
 def fetch_patient_data():
-    # Fetch data from the database
+
     conn = sqlite3.connect(DATABASE_URL)
     query = """
     SELECT Patient_Info.patientID,Patient_Info.age, Patient_Info.diagnosis, Patient_Info.treatment_type, 
@@ -329,10 +329,12 @@ def fetch_patient_data():
     conn.close()
     return df
 
+
 def professional_dashboard():
     try:
         # Check user role from session state
         user_role = st.session_state.get("user_role")
+        user_id = st.session_state.get("user_id")  # Ensure user_id is retrieved
 
         # Display different views based on user role
         if user_role in ["Admin", "Doctor/Nurse"]:
@@ -350,7 +352,7 @@ def professional_dashboard():
             )
 
             st.markdown("<h1 style='font-size:24px;'>Doctor/Nurse's Dashboard</h1>", unsafe_allow_html=True)
-            
+
             # Sidebar for search input and selecting information type
             choice = st.sidebar.radio(
                 "Select Information Type:",
@@ -361,11 +363,12 @@ def professional_dashboard():
             # Display the Overview section only if it's selected
             if choice == "Overview":
                 st.subheader("Overview of Patient Records")
-                st.write("Welcome to the overview section! This view provides a summary of key metrics and statistics related to patient data.")
-                
+                st.write(
+                    "Welcome to the overview section! This view provides a summary of key metrics and statistics related to patient data.")
+
                 # Fetching patient data and displaying key statistics
                 patient_df = fetch_patient_data()
-                
+
                 # Total number of patients
                 total_patients = patient_df["patientID"].nunique()
                 st.markdown(
@@ -381,7 +384,7 @@ def professional_dashboard():
                 # Age Distribution
                 st.subheader("Age Distribution of Patients")
                 age_histogram = px.histogram(patient_df, x='age', nbins=20, title="Age Distribution of Patients",
-                                            labels={'age': 'Age'}, height=400)
+                                             labels={'age': 'Age'}, height=400)
                 st.plotly_chart(age_histogram, use_container_width=True)
 
                 # Treatment type
@@ -392,20 +395,21 @@ def professional_dashboard():
                                          title="Number of Patients by Treatment Type", height=400)
                 st.plotly_chart(treatment_chart, use_container_width=True)
 
-
                 # Patients by Diagnosis
                 st.subheader("Patients by Diagnosis")
                 diagnosis_count = patient_df["diagnosis"].value_counts().reset_index()
                 diagnosis_count.columns = ["Diagnosis", "Count"]
                 diagnosis_chart = px.bar(diagnosis_count, x="Diagnosis", y="Count", color="Diagnosis",
-                                        title="Number of Patients by Diagnosis", height=400)
+                                         title="Number of Patients by Diagnosis", height=400)
                 st.plotly_chart(diagnosis_chart, use_container_width=True)
 
                 # Bone Density Analysis
                 st.subheader("Bone Density Distribution")
                 if "bone_mass_density" in patient_df.columns:
-                    bone_density_histogram = px.histogram(patient_df, x='bone_mass_density', nbins=20, title="Bone Density Distribution",
-                                                        labels={'bone_mass_density': 'Bone Density (g/cm²)'}, height=400)
+                    bone_density_histogram = px.histogram(patient_df, x='bone_mass_density', nbins=20,
+                                                          title="Bone Density Distribution",
+                                                          labels={'bone_mass_density': 'Bone Density (g/cm²)'},
+                                                          height=400)
                     st.plotly_chart(bone_density_histogram, use_container_width=True)
                 else:
                     st.write("Bone density data is not available for this patient dataset.")
@@ -414,9 +418,10 @@ def professional_dashboard():
                 st.subheader("Age vs Bone Density")
                 if "bone_mass_density" in patient_df.columns:
                     age_bone_scatter = px.scatter(patient_df, x='age', y='bone_mass_density', color='diagnosis',
-                                                title="Age vs Bone Density by Diagnosis",
-                                                labels={'age': 'Age', 'bone_mass_density': 'Bone Density (g/cm²)', 'diagnosis': 'Diagnosis'},
-                                                height=400)
+                                                  title="Age vs Bone Density by Diagnosis",
+                                                  labels={'age': 'Age', 'bone_mass_density': 'Bone Density (g/cm²)',
+                                                          'diagnosis': 'Diagnosis'},
+                                                  height=400)
                     st.plotly_chart(age_bone_scatter, use_container_width=True)
                 else:
                     st.write("Bone density data is not available for this patient dataset.")
@@ -535,13 +540,12 @@ def professional_dashboard():
                     else:
                         st.warning("No appointments found for the specified name.")
 
-
             # Send reminder for upcoming appointments (1 or 3 days)
             reminder_days = st.sidebar.radio(
                 "Send reminder for upcoming appointments in:", (3, 1)
             )
             if st.sidebar.button(
-                f"Send Reminder for Appointments in {reminder_days} Day(s)"
+                    f"Send Reminder for Appointments in {reminder_days} Day(s)"
             ):
                 appointments_df = get_upcoming_appointments(reminder_days)
                 if not appointments_df.empty:
@@ -573,11 +577,7 @@ def professional_dashboard():
             st.markdown("<h1 style='font-size:24px;'>Welcome to Your Health Dashboard</h1>", unsafe_allow_html=True)
             st.write("Here you can see your current medications and upcoming appointments and health tips.")
 
-            # Fetch the logged-in patient's information (assuming user_id is stored in session state)
-            user_id = st.session_state.get("user_id")
-            # Debugging: Print the entire session state to check the user_id
-            st.write("Session State:", st.session_state.get("user_id"))
-
+            # Fetch the logged-in patient's information (ensure user_id is stored in session state)
             if user_id:
                 # Fetch the patient's medication information
                 conn = sqlite3.connect(DATABASE_URL)
@@ -620,9 +620,9 @@ def professional_dashboard():
 
         else:
             st.warning("You do not have access to this dashboard.")
-        
+
     except Exception as e:
         st.error(f"An unexpected error occurred: {e}")
 
-if __name__ == "__main__":
-    professional_dashboard()
+#if __name__ == "__main__":
+#    professional_dashboard()
