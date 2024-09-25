@@ -330,6 +330,23 @@ def fetch_patient_data():
     return df
 
 
+# Color for subheader
+st.markdown(
+    """
+    <style>
+    .custom-subheader {
+        font-size:24px;
+        color: #4A90E2; /* Soft Blue */
+        font-weight: bold;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+
 def professional_dashboard():
     try:
         # Check user role from session state
@@ -600,11 +617,11 @@ def professional_dashboard():
                 conn.close()
 
                 if not medication_df.empty:
-                    st.subheader("Your Medications")
+                    st.markdown("<h2 class='custom-subheader'>Your Medications</h2>", unsafe_allow_html=True)
                     st.dataframe(medication_df)
 
                 if not appointments_df.empty:
-                    st.subheader("Your Upcoming Appointments")
+                    st.markdown("<h2 class='custom-subheader'>Your Upcoming Appointments</h2>", unsafe_allow_html=True)
                     st.dataframe(appointments_df)
 
                 # Health Tips or any other personalized information can be added here
